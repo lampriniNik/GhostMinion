@@ -1,0 +1,26 @@
+# Upstream code is fetched by scripts/bootstrap.sh, never committed
+reproduce-ghostminion-paper/
+gem5/
+
+# SPEC CPU2006 is licensed: no sources, binaries, inputs or run directories
+SPEC/
+cpu2006*
+*.iso
+benchspec/
+run_base_ref_*/
+
+# Large simulation inputs and outputs
+*.img
+*.img.tar.gz
+vmlinux*
+m5out*/
+stats*.txt
+*.ckpt
+cpt.*/
+
+# Python / editor
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.vscode/
+.DS_Store

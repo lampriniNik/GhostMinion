@@ -1,0 +1,8 @@
+bench,base_roi_s,gm_roi_s,overhead_pct
+blackscholes,0.081755,0.081759,0.005
+canneal,0.464351,0.458128,-1.340
+ferret,0.385370,0.362679,-5.888
+fluidanimate,0.254603,0.257401,1.099
+freqmine,1.466032,1.437769,-1.928
+streamcluster,0.727460,0.755415,3.843
+swaptions,0.512433,0.489330,-4.508
