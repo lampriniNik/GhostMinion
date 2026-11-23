@@ -165,8 +165,8 @@ The full, step-by-step environment guide (micromamba environments, every workaro
 <!-- TODO: pin the artefact commit hash once read from gm_status/gm_changes on haci3 -->
 
 ```bash
-git clone https://github.com/<user>/ghostminion-reproduction.git
-cd ghostminion-reproduction
+git clone https://github.com/lampriniNik/GhostMinion.git
+cd GhostMinion
 ./scripts/bootstrap.sh /path/to/workdir      # clones the artefact at a fixed commit and applies patches/
 ```
 
@@ -226,7 +226,7 @@ python3 analysis/plot_ghostminion.py <SPEC>/benchspec/CPU2006 \
 ## Repository layout
 
 ```
-ghostminion-reproduction/
+GhostMinion/
 ├── README.md
 ├── LICENSE
 ├── docs/
