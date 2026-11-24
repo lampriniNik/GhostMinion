@@ -228,7 +228,7 @@ cd $ARTEFACT/scripts            # Parsec: disk image in aarch_system/disks/ firs
 ./run_parsec.sh                 # 7 benchmarks, baseline + full GhostMinion
 ```
 
-<!-- TODO: wall-clock time of the SPEC and Parsec runs -->
+On the machine above, a SPEC benchmark took on average 2.6 h of host time for the baseline run and 3.0 h for GhostMinion, run one after the other. With all 25 benchmarks in parallel, the whole suite took about 16 hours, set by mcf (7.0 h baseline, 9.2 h GhostMinion). Parsec run times were not recorded.
 
 ### 6. Collect results and plot
 

@@ -123,13 +123,11 @@ Four problems came up, in this order:
 1. **SCons does not find the compiler.** There is no system `gcc`, and the environment's compilers are called `x86_64-conda-linux-gnu-gcc` and `-g++`. `env.sh` sets `CC` and `CXX` to these names.
 2. **`Python.h` cannot find `crypt.h`.** The header comes from libxcrypt in the environment, and `CPATH` points to it, but gem5's SCons builds with a clean environment and only imports a fixed list of variables, which does not include `CPATH`. [`patches/0001-gem5-scons-pass-CPATH.patch`](../patches/0001-gem5-scons-pass-CPATH.patch) adds it to that list in `site_scons/site_tools/default.py`. This is the only change to gem5.
 3. **Linker error about `.relr.dyn`.** The host's system libraries (Debian 13) use a relocation format that the older linker in the environment does not understand. The environment's glibc 2.17 sysroot (`sysroot_linux-64`), which the compiler then links against instead of the host's libraries, avoids it.
-4. **`ar: not found`.** SCons calls the binutils by their short names, which the environment only provides with the `x86_64-conda-linux-gnu-` prefix. Symlinks with the short names in the environment's `bin/` fix it:
+4. **`ar: not found`.** The build calls the binutils by their short names, which the environment only provides with the `x86_64-conda-linux-gnu-` prefix. Symlinks with the short names in the environment's `bin/` fix it. These are the five that were created on the node:
    ```bash
    cd $CONDA_PREFIX/bin
-   ln -s x86_64-conda-linux-gnu-ar ar
-   ln -s x86_64-conda-linux-gnu-ranlib ranlib
+   for t in ar as nm ranlib strip; do ln -s x86_64-conda-linux-gnu-$t $t; done
    ```
-   <!-- TODO: confirm the exact list of symlinks on haci3 (ls -l $CONDA_PREFIX/bin | grep -- '-> x86_64-conda') -->
 
 A successful build produces `$ARTEFACT/gem5/build/ARM/gem5.opt`.
 
@@ -179,7 +177,15 @@ $ARTEFACT/SPEC/benchspec/CPU2006/<bench>/run/run_base_ref_aarch64.0000/
 
 The statistics are reset when gem5 switches from the fast-forward CPU to the out-of-order CPU, so `sim_seconds` covers only the detailed part of the run.
 
-<!-- TODO: wall-clock time per suite -->
+Host time per run on the node, over the 25 benchmarks:
+
+| | Baseline | GhostMinion |
+|---|---|---|
+| Mean | 2.6 h | 3.0 h |
+| Fastest | 1.8 h (hmmer) | 2.0 h (h264ref) |
+| Slowest | 7.0 h (mcf) | 9.2 h (mcf) |
+
+Since every benchmark runs its two configurations one after the other, and all 25 run in parallel, the suite finishes after about 16 hours, when mcf does.
 
 ## 8. Parsec
 
