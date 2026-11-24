@@ -145,7 +145,7 @@ def write_raw_csv(results, out_dir):
     """Long format: one line per (benchmark, configuration) that exists."""
     path = os.path.join(out_dir, "spec06_raw.csv")
     with open(path, "w", newline="") as f:
-        w = csv.writer(f)
+        w = csv.writer(f, lineterminator="\n")
         w.writerow(["bench", "config", "stats_file", "sim_seconds", "sim_insts"])
         for r in results:
             for name, _ in CONFIGS:
@@ -167,7 +167,7 @@ def write_results_csv(results, out_dir):
         "coher": "overhead_dminion_coher_pct",
     }
     with open(path, "w", newline="") as f:
-        w = csv.writer(f)
+        w = csv.writer(f, lineterminator="\n")
         w.writerow(["bench"] + list(cols.values()))
         for r in results:
             w.writerow([r["bench"]] + [fmt3(ovh(r, c)) for c in cols])
@@ -189,7 +189,7 @@ def read_parsec(csv_path):
 def write_parsec_csv(rows, out_dir):
     path = os.path.join(out_dir, "parsec_results.csv")
     with open(path, "w", newline="") as f:
-        w = csv.writer(f)
+        w = csv.writer(f, lineterminator="\n")
         w.writerow(["bench", "base_roi_s", "gm_roi_s", "overhead_pct"])
         for bench, b, g in rows:
             w.writerow([bench, f"{b:.6f}", f"{g:.6f}", fmt3(overhead(b, g))])

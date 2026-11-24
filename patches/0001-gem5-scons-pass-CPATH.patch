@@ -1,0 +1,21 @@
+Pass CPATH from the shell to the compiler when building gem5.
+
+SCons builds with a clean environment and only imports the variables listed
+in use_vars. Without CPATH, Python.h cannot find crypt.h, which comes from
+libxcrypt in the micromamba environment. This is the only change to gem5.
+
+Applies to: gem5/site_scons/site_tools/default.py (artefact tag AEV3)
+
+diff --git a/gem5/site_scons/site_tools/default.py b/gem5/site_scons/site_tools/default.py
+index 1965a20..4894057 100644
+--- a/gem5/site_scons/site_tools/default.py
++++ b/gem5/site_scons/site_tools/default.py
+@@ -49,7 +49,7 @@ from gem5_python_paths import extra_python_paths
+ def common_config(env):
+     # export TERM so that clang reports errors in color
+     use_vars = set([ 'AS', 'AR', 'CC', 'CXX', 'HOME', 'LD_LIBRARY_PATH',
+-                     'LIBRARY_PATH', 'PATH', 'PKG_CONFIG_PATH', 'PROTOC',
++                     'LIBRARY_PATH', 'CPATH', 'PATH', 'PKG_CONFIG_PATH', 'PROTOC',
+                      'PYTHONPATH', 'RANLIB', 'TERM' ])
+ 
+     use_prefixes = [

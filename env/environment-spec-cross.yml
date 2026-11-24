@@ -1,0 +1,37 @@
+name: spec-cross
+channels:
+  - conda-forge
+dependencies:
+  - _openmp_mutex=4.5=20_gnu
+  - binutils_impl_linux-64=2.46.1=default_hfdba357_103
+  - binutils_impl_linux-aarch64=2.39=h57c828d_1
+  - binutils_linux-aarch64=2.39=h9a81858_13
+  - gcc_impl_linux-64=9.5.0=h99780fb_19
+  - gcc_impl_linux-aarch64=9.5.0=h9d22726_19
+  - gcc_linux-aarch64=9.5.0=hf5353d5_13
+  - gfortran_impl_linux-64=9.5.0=hf1096a2_19
+  - gfortran_impl_linux-aarch64=9.5.0=h1bbc799_19
+  - gfortran_linux-aarch64=9.5.0=h73c9a91_13
+  - gxx_impl_linux-64=9.5.0=h99780fb_19
+  - gxx_impl_linux-aarch64=9.5.0=h9d22726_19
+  - gxx_linux-aarch64=9.5.0=h9b81d4f_13
+  - kernel-headers_linux-64=6.12.0=he073ed8_6
+  - kernel-headers_linux-aarch64=4.18.0=h05a177a_18
+  - ld_impl_linux-64=2.46.1=default_hbd61a6d_103
+  - ld_impl_linux-aarch64=2.39=hc438fd5_1
+  - libgcc=16.2.0=ha9f2e26_7
+  - libgcc-devel_linux-64=9.5.0=h0a57e50_19
+  - libgcc-devel_linux-aarch64=9.5.0=h5fbde8c_19
+  - libgcc-ng=16.2.0=h69a702a_7
+  - libgfortran5=16.2.0=h6b99dfc_7
+  - libgomp=16.2.0=he0feb66_7
+  - libsanitizer=9.5.0=h2f262e1_19
+  - libstdcxx=16.2.0=h934c35e_7
+  - libstdcxx-devel_linux-64=9.5.0=h0a57e50_19
+  - libstdcxx-devel_linux-aarch64=9.5.0=h5fbde8c_19
+  - libstdcxx-ng=16.2.0=hdf11a46_7
+  - libzlib=1.3.2=h25fd6f3_3
+  - sysroot_linux-64=2.39=hc4b9eeb_6
+  - sysroot_linux-aarch64=2.17=h68829e0_18
+  - tzdata=2026e=h5d301ff_0
+  - zstd=1.5.7=hb78ec9c_7

@@ -6,12 +6,12 @@ A reproduction of the SPEC CPU2006 and Parsec results of
 > MICRO 2021. [arXiv:2104.05532](https://arxiv.org/abs/2104.05532),
 > DOI [10.1145/3466752.3480074](https://doi.org/10.1145/3466752.3480074)
 
-using the author's artefact ([SamAinsworth/reproduce-ghostminion-paper](https://github.com/SamAinsworth/reproduce-ghostminion-paper), modified gem5 v20.1) on a shared university cluster without root access, Docker or a system compiler.
+using the author's artefact ([SamAinsworth/reproduce-ghostminion-paper](https://github.com/SamAinsworth/reproduce-ghostminion-paper), tag `AEV3`, modified gem5 v20.1) on a shared university cluster without root access, Docker or a system compiler.
 
 Lamprini Nikitaki, School of Electrical and Computer Engineering, National Technical University of Athens (NTUA).
 Semester project for the course *Advanced Topics in Computer Architecture*, 2026–2027.
 
-This repository contains everything I wrote or changed on top of the artefact: the environment, a small build patch, the run and collection scripts, the analysis script, the final results and figures, and the presentation slides. It does not contain gem5, the artefact itself, SPEC, or any benchmark inputs (see [What is not included](#what-is-not-included)).
+This repository contains everything I wrote or changed on top of the artefact: the environment, three small patches, the run and collection scripts, the analysis script, the final results and figures, and the presentation slides. It does not contain gem5, the artefact itself, SPEC, or any benchmark inputs (see [What is not included](#what-is-not-included)).
 
 The slides of the intermediate and final presentations are in [`docs/`](docs/): [intermediate slides](docs/slides_intermediate.pdf), [final slides](docs/slides_final.pdf).
 
@@ -74,7 +74,7 @@ and geometric means are taken over the time ratios, computed from the raw `sim_s
 
 Most benchmarks behave as in the paper: a long tail of near-zero overheads and a few memory-intensive workloads that lose the benefit of misspeculated accesses, which in the baseline act as useful prefetches (mcf, gcc, zeusmp, leslie3d, bzip2; the paper names the same group in Sec. 6.1–6.2). The difference in the geometric mean comes almost entirely from two benchmarks, lbm and libquantum, which are discussed [below](#observation-the-ordered-prefetcher-on-lbm-and-libquantum). Without them the geometric mean is 2.94%, close to the paper's 2.5%.
 
-Every configuration of a given benchmark simulated the same instruction stream: `sim_insts` differs by at most 6 instructions out of about 2·10⁹ between baseline, GhostMinion and the ablation runs.
+Every configuration of a given benchmark simulated the same instruction stream: `sim_insts` differs by at most 6 instructions out of about 2·10⁹ between baseline, GhostMinion and the ablation runs. `sim_seconds` covers only the detailed part of each run, because gem5 resets the statistics when it switches from the fast-forward CPU to the out-of-order CPU; for example, libquantum without the ordered prefetcher switches at 0.501 s and exits at 1.163 s, and its `sim_seconds` is 0.662 s.
 
 Per-benchmark numbers: [`results/spec06_results.csv`](results/spec06_results.csv) (overheads, 3 decimals) and [`results/spec06_raw.csv`](results/spec06_raw.csv) (`sim_seconds` and `sim_insts` for every run).
 
@@ -122,16 +122,14 @@ The obvious explanation, fewer conflict misses in the L1D, does not hold: L1D mi
 
 To find out why lbm and libquantum are so far from the paper, I re-ran them with parts of GhostMinion switched off. Turning off only the ordered prefetcher is **not a secure configuration**; it is used purely as a diagnostic.
 
-<!-- TODO: fill in the exact command-line flags from scripts/run_spec06_ablation.sh once confirmed against the haci3 scripts / config.ini. The option names below are the artefact's (see gem5/configs/common/Options.py). -->
+| Configuration | gem5 options | Script | lbm | libquantum |
+|---|---|---|---|---|
+| D-Minion only (with TimeGuarding, Leapfrogging) | `--ghostminion` | `run_libq_breakdown.sh` | | −1.28% |
+| + coherence | `--ghostminion --cache_coher` | `run_libq_breakdown.sh` | | 11.62% |
+| + I-Minion (everything except the ordered prefetcher) | `--ghostminion --cache_coher --ghost_size=2kB --iminion` | `run_nopf.sh` | −0.09% | 11.77% |
+| + ordered prefetcher (full GhostMinion) | `--ghostminion --cache_coher --ghost_size=2kB --iminion --prefetch_ordered` | artefact's `run_spec06.sh` | 40.72% | 21.84% |
 
-| Configuration | gem5 options | lbm | libquantum |
-|---|---|---|---|
-| D-Minion only (with TimeGuarding, Leapfrogging) | `--ghostminion` | | −1.28% |
-| + coherence | `--ghostminion --cache_coher` | | 11.62% |
-| + I-Minion (everything except the ordered prefetcher) | `--ghostminion --cache_coher --iminion` | −0.09% | 11.77% |
-| + ordered prefetcher (full GhostMinion) | `--ghostminion --cache_coher --iminion --prefetch_ordered` | 40.72% | 21.84% |
-
-The third row is a single set of runs (`m5out_nopf`). For libquantum it is both the "+ I-Minion" step of the incremental breakdown and the "without ordered prefetcher" bar in the figure below; for lbm it is the only ablation run.
+All runs share the same base options as the artefact (`--caches --l2cache --cpu-type=DerivO3CPU --fast-forward=1000000000 --maxinsts=1000000000 --mem-size=4096MB`); the two runs without `--ghost_size` use the default, which is also 2 kB. The third row is a single set of runs (`m5out_nopf`). For libquantum it is both the "+ I-Minion" step of the incremental breakdown and the "without ordered prefetcher" bar in the figure below; for lbm it is the only ablation run.
 
 ![Prefetcher ablation](figures/fig2_prefetcher_ablation.png)
 ![libquantum breakdown](figures/fig3_libquantum_breakdown.png)
@@ -149,78 +147,95 @@ The gem5 stats point to prefetch timeliness rather than prefetch count or MSHR p
 
 On lbm the prefetcher issues almost the same number of prefetches, yet the L2 miss rate doubles, which suggests that the prefetches arrive too late once training is delayed until commit. The cycles blocked on full MSHRs grow roughly in proportion to runtime, so MSHR contention does not look like the cause.
 
-**Hypothesis.** The access pattern seen by the prefetcher depends on the generated code. These binaries were built with a cross-compiler (aarch64 GCC 9.5 from conda-forge) that differs from the toolchain used for the original artefact. <!-- TODO: confirm the artefact's compiler version from scripts/build_spec06.sh --> A different loop structure or unrolling in lbm's and libquantum's hot loops could change how far ahead of commit the useful accesses are, and therefore how much is lost by training only on committed accesses. Testing this would need rebuilding both benchmarks with the original toolchain and repeating the ablation, which I have not done.
+**Hypothesis.** The access pattern seen by the prefetcher depends on the generated code. These binaries were built with aarch64 GCC 9.5 from conda-forge, while the artefact's configuration uses Ubuntu's GCC 5 cross-compilers (`aarch64-linux-gnu-gcc-5`, installed by its `scripts/dependencies.sh`). A different loop structure or unrolling in lbm's and libquantum's hot loops could change how far ahead of commit the useful accesses are, and therefore how much is lost by training only on committed accesses. Testing this would need rebuilding both benchmarks with the original toolchain and repeating the ablation, which I have not done.
 
 ## Reproducing the results
 
-The full, step-by-step environment guide (micromamba environments, every workaround, and the exact error messages they fix) is in [`docs/setup_cslab.md`](docs/setup_cslab.md). The outline below is enough if you are comfortable with gem5.
+The full, step-by-step environment guide (micromamba environments, every workaround, and the error messages they fix) is in [`docs/setup_cslab.md`](docs/setup_cslab.md). The outline below is enough if you are comfortable with gem5.
 
 ### Requirements
 
 - An x86-64 Linux machine with many cores. The runs here used a node with 2 × 14 cores (56 threads) and 188 GB of RAM; all 25 SPEC benchmarks ran in parallel, one per physical core.
 - No root access is needed. Everything is installed under a user directory with [micromamba](https://mamba.readthedocs.io/).
 - A licensed copy of SPEC CPU2006 (v1.1 was used here). It is not distributed with this repository.
-- For Parsec, the artefact's disk image and kernel (downloaded by the artefact's build scripts, or from its Releases page).
+- For Parsec, the artefact's prebuilt disk image `aarch64-ubuntu-trusty-headless.img.tar.gz` from its Releases page.
 
-### 1. Get the artefact and apply the patch
+Two kinds of scripts are used below. The artefact's own scripts (`build.sh`, `run_spec06.sh`, `build_parsec_simplified.sh`, `run_parsec.sh`) are run from `$ARTEFACT/scripts`, because they locate everything relative to that directory. The scripts in this repository (`scripts/`) can be run from anywhere once `env/env.sh` has been sourced.
 
-<!-- TODO: pin the artefact commit hash once read from gm_status/gm_changes on haci3 -->
+### 1. Environments
 
 ```bash
 git clone https://github.com/lampriniNik/GhostMinion.git
 cd GhostMinion
-./scripts/bootstrap.sh /path/to/workdir      # clones the artefact at a fixed commit and applies patches/
-```
 
-The only change to gem5 itself is in `site_scons/site_tools/default.py`, which adds `CPATH` to the environment variables SCons passes to the compiler, so that headers from the micromamba environment (such as `crypt.h`, needed by `Python.h`) are found. GhostMinion's code is not modified.
-
-### 2. Create the environments
-
-```bash
+# micromamba is a single binary; install it somewhere under your own directory
+export MAMBA_ROOT_PREFIX=/local/$USER/mamba
 micromamba create -n gem5       -f env/environment-gem5.yml
 micromamba create -n spec-cross -f env/environment-spec-cross.yml
-source env/env.sh                            # activates gem5 and exports CC, CXX, CPATH, ...
+
+source env/env.sh
 ```
 
-- `gem5`: Python 3.8, SCons 3.1.2, GCC 7.5, libxcrypt, a glibc 2.17 sysroot, dtc.
+- `gem5`: Python 3.8, SCons 3.1.2, GCC/G++ 7.5, libxcrypt, a glibc 2.17 sysroot, dtc.
 - `spec-cross`: aarch64 GCC/G++/GFortran 9.5 with a glibc 2.17 sysroot, used to cross-compile SPEC.
+
+`env/env.sh` activates `gem5` and sets `CC`, `CXX`, `CPATH`, `LIBRARY_PATH` and `LD_LIBRARY_PATH`. Its default paths (`/local/$USER/...`) are those of the CSLab node; set `MAMBA_ROOT_PREFIX`, `MICROMAMBA` and `ARTEFACT` before sourcing it to use other locations.
+
+### 2. Get the artefact and apply the patches
+
+```bash
+scripts/bootstrap.sh /local/$USER
+```
+
+This clones the artefact, checks out tag `AEV3` (commit `38b24e0`), verifies the commit, and applies the three patches in [`patches/`](patches/):
+
+| Patch | File in the artefact | Change |
+|---|---|---|
+| `0001-gem5-scons-pass-CPATH` | `gem5/site_scons/site_tools/default.py` | SCons passes `CPATH` to the compiler, so that `crypt.h` from the environment is found. The only change to gem5. |
+| `0002-run_spec06-run-25-benchmarks-in-parallel` | `scripts/run_spec06.sh` | `P=25` instead of `min(cores, RAM / 2 GiB)`. |
+| `0003-spec-aarch64-cfg-conda-cross-compilers` | `spec_confs/aarch64.cfg` | conda-forge AArch64 GCC 9.5 instead of Ubuntu's GCC 5; `-std=gnu++98` for soplex and `-std=legacy` for gamess. |
+
+GhostMinion's code is not modified.
 
 ### 3. Build gem5
 
 ```bash
-./scripts/build_gem5.sh
+cd $ARTEFACT/scripts && ./build.sh
 ```
 
 ### 4. Build SPEC CPU2006
 
-Copy [`spec/aarch64.cfg`](spec/aarch64.cfg) into `SPEC/config/` and edit the compiler paths at the top. Compared with the artefact's configuration it points to the conda-forge cross-compilers and adds two per-benchmark flags:
+The artefact's `build_spec06.sh` mounts the SPEC ISO with `sudo`. Without root, copy an installed SPEC CPU2006 tree to `$ARTEFACT/SPEC` and run
 
-```
-450.soplex=default=default=default:
-EXTRA_CXXFLAGS = -std=gnu++98
-
-416.gamess=default=default=default:
-EXTRA_FFLAGS = -std=legacy
+```bash
+scripts/build_spec06_noroot.sh
 ```
 
-Then run `./scripts/build_spec06.sh`. Notes on SPEC-specific problems (a wrong `runspec` shebang, an astar input with a bad MD5, run directories named `.0001` instead of `.0000`) are in the setup guide.
+It fixes the paths of the moved installation (`bin/relocate`), installs the patched config, runs the artefact's `runspec` commands, renames run directories to the `.0000` suffix the run scripts expect, and prints the checksums of astar's `BigLakes2048.cfg` for comparison with SPEC's `MANIFEST` (the file was corrupted in the installation used here). The `runspec --action=run` step reports failures because the AArch64 binaries cannot run on the x86 host; that is expected.
 
 ### 5. Run
 
 ```bash
-./scripts/run_spec06.sh            # baseline + GhostMinion, 25 benchmarks in parallel
-./scripts/run_spec06_ablation.sh   # lbm and libquantum, partial configurations
-./scripts/run_parsec.sh            # 7 Parsec benchmarks, baseline + GhostMinion
+cd $ARTEFACT/scripts
+./run_spec06.sh                 # 25 benchmarks, baseline + full GhostMinion
+
+cd -
+scripts/run_nopf.sh             # lbm, libquantum: without --prefetch_ordered
+scripts/run_libq_breakdown.sh   # libquantum: D-Minion only, D-Minion + coherence
+
+cd $ARTEFACT/scripts            # Parsec: disk image in aarch_system/disks/ first
+./build_parsec_simplified.sh
+./run_parsec.sh                 # 7 benchmarks, baseline + full GhostMinion
 ```
 
-The SPEC runs take roughly <!-- TODO: wall-clock time --> on the machine above.
+<!-- TODO: wall-clock time of the SPEC and Parsec runs -->
 
 ### 6. Collect results and plot
 
 ```bash
-./scripts/collect_parsec.sh                  # writes run_parsec/parsec_results.csv
-python3 analysis/plot_ghostminion.py <SPEC>/benchspec/CPU2006 \
-        --out figures --parsec-csv run_parsec/parsec_results.csv
+scripts/collect_parsec.sh       # writes $ARTEFACT/run_parsec/parsec_results.csv
+python3 analysis/plot_ghostminion.py $ARTEFACT/SPEC/benchspec/CPU2006 \
+        --out figures --parsec-csv $ARTEFACT/run_parsec/parsec_results.csv
 ```
 
 `plot_ghostminion.py` reads the gem5 `stats.txt` files directly, prints the summary numbers above, and writes the three CSV files in `results/` and the four figures in `figures/` (PNG and PDF). It needs only Python 3 and matplotlib.
@@ -232,24 +247,30 @@ GhostMinion/
 ├── README.md
 ├── LICENSE
 ├── docs/
-│   ├── setup_cslab.md        detailed setup guide (no root, micromamba)
-│   ├── slides_intermediate.pdf   intermediate presentation
-│   └── slides_final.pdf      final presentation
+│   ├── setup_cslab.md                detailed setup guide (no root, micromamba)
+│   ├── slides_intermediate.pdf       intermediate presentation
+│   └── slides_final.pdf              final presentation
 ├── env/
-│   ├── env.sh
+│   ├── env.sh                        source before building or running
 │   ├── environment-gem5.yml
 │   └── environment-spec-cross.yml
-├── patches/                  changes applied on top of the artefact
-├── spec/
-│   └── aarch64.cfg
-├── scripts/                  bootstrap, build, run and collection scripts
+├── patches/                          applied to the artefact by bootstrap.sh
+│   ├── 0001-gem5-scons-pass-CPATH.patch
+│   ├── 0002-run_spec06-run-25-benchmarks-in-parallel.patch
+│   └── 0003-spec-aarch64-cfg-conda-cross-compilers.patch
+├── scripts/
+│   ├── bootstrap.sh                  clone the artefact at AEV3, apply patches
+│   ├── build_spec06_noroot.sh        build SPEC CPU2006 without sudo
+│   ├── run_nopf.sh                   ablation: without the ordered prefetcher
+│   ├── run_libq_breakdown.sh         ablation: libquantum, mechanism by mechanism
+│   └── collect_parsec.sh             Parsec ROI times -> CSV
 ├── analysis/
-│   └── plot_ghostminion.py
+│   └── plot_ghostminion.py           CSV files and figures from gem5 stats
 ├── results/
-│   ├── spec06_raw.csv        sim_seconds, sim_insts per benchmark and configuration
-│   ├── spec06_results.csv    overhead per benchmark and configuration
-│   └── parsec_results.csv    ROI times and overhead
-└── figures/                  fig1–fig4, PNG and PDF
+│   ├── spec06_raw.csv                sim_seconds, sim_insts per benchmark and configuration
+│   ├── spec06_results.csv            overhead per benchmark and configuration
+│   └── parsec_results.csv            ROI times and overhead
+└── figures/                          fig1–fig4, PNG and PDF
 ```
 
 ## What is not included

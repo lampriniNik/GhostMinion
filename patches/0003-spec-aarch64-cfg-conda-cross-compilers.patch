@@ -1,0 +1,41 @@
+SPEC CPU2006 config: conda-forge AArch64 cross-compilers and two fixes.
+
+- CC/CXX/FC point to the aarch64 GCC 9.5 toolchain of the spec-cross
+  environment instead of the Ubuntu gcc-5 cross-compilers.
+  @SPEC_CROSS_BIN@ is replaced by scripts/bootstrap.sh with
+  $MAMBA_ROOT_PREFIX/envs/spec-cross/bin.
+- 450.soplex: -std=gnu++98, its sources do not build as C++14 (the GCC 9 default).
+- 416.gamess: -std=legacy, GFortran 9 rejects some of its older constructs.
+
+Applies to: spec_confs/aarch64.cfg (artefact tag AEV3)
+
+diff --git a/spec_confs/aarch64.cfg b/spec_confs/aarch64.cfg
+index 04316f1..e8c50e0 100644
+--- a/spec_confs/aarch64.cfg
++++ b/spec_confs/aarch64.cfg
+@@ -51,9 +51,9 @@ default=default=default=default:
+ # Compiler selection
+ #
+ #####################################################################
+-CC           = aarch64-linux-gnu-gcc-5
+-CXX          = aarch64-linux-gnu-g++-5
+-FC           = aarch64-linux-gnu-gfortran
++CC           = @SPEC_CROSS_BIN@/aarch64-conda-linux-gnu-gcc
++CXX          = @SPEC_CROSS_BIN@/aarch64-conda-linux-gnu-g++
++FC           = @SPEC_CROSS_BIN@/aarch64-conda-linux-gnu-gfortran
+ 
+ ## HW config
+ hw_model     = Tyan Thunder KKQS Pro (S4882)
+@@ -133,6 +133,12 @@ wrf_data_header_size = 8
+ CPORTABILITY = -DSPEC_CPU_CASE_FLAG -DSPEC_CPU_LINUX
+ #####################################################################
+ 
++450.soplex=default=default=default:
++EXTRA_CXXFLAGS = -std=gnu++98
++
++416.gamess=default=default=default:
++EXTRA_FFLAGS = -std=legacy
++
+ __MD5__
+ 401.bzip2=base=amd64-m64-gcc42-nn=default:
+ # Last updated Thu Jul 12 12:29:48 2018
