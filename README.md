@@ -11,7 +11,9 @@ using the author's artefact ([SamAinsworth/reproduce-ghostminion-paper](https://
 Lamprini Nikitaki, School of Electrical and Computer Engineering, National Technical University of Athens (NTUA).
 Semester project for the course *Advanced Topics in Computer Architecture*, 2026–2027.
 
-This repository contains everything I wrote or changed on top of the artefact: the environment, a small build patch, the run and collection scripts, the analysis script, the final results and figures, and the report. It does not contain gem5, the artefact itself, SPEC, or any benchmark inputs (see [What is not included](#what-is-not-included)).
+This repository contains everything I wrote or changed on top of the artefact: the environment, a small build patch, the run and collection scripts, the analysis script, the final results and figures, and the presentation slides. It does not contain gem5, the artefact itself, SPEC, or any benchmark inputs (see [What is not included](#what-is-not-included)).
+
+The slides of the intermediate and final presentations are in [`docs/`](docs/): [intermediate slides](docs/slides_intermediate.pdf), [final slides](docs/slides_final.pdf).
 
 ## Contents
 
@@ -231,8 +233,8 @@ GhostMinion/
 ├── LICENSE
 ├── docs/
 │   ├── setup_cslab.md        detailed setup guide (no root, micromamba)
-│   ├── report_el.pdf         full report (in Greek)
-│   └── slides.pdf            final presentation
+│   ├── slides_intermediate.pdf   intermediate presentation
+│   └── slides_final.pdf      final presentation
 ├── env/
 │   ├── env.sh
 │   ├── environment-gem5.yml
